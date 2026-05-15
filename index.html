@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Semilocal Exchange Potential — SCAN & r²SCAN</title>
+  <style>
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --accent:    #58a6ff;
+      --accent2:   #3fb950;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --scan-col:  #9467bd;
+      --r2scan-col:#1f77b4;
+      --lkt-col:   #d62728;
+      --pgs-col:   #2ca02c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.7;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0d1117 0%, #1a2233 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 2rem 2.5rem;
+      text-align: center;
+    }
+    header .badge {
+      display: inline-block;
+      background: rgba(88,166,255,0.12);
+      border: 1px solid rgba(88,166,255,0.3);
+      border-radius: 20px;
+      padding: 0.2rem 0.9rem;
+      font-size: 0.78rem;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    header h1 {
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    header h1 sup { font-size: 0.6em; vertical-align: super; }
+    header p.subtitle {
+      margin-top: 0.75rem;
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 600px;
+      margin-inline: auto;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+    .pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.25rem 0.85rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .pill span { color: var(--text); font-weight: 600; }
+
+    /* ── Nav ── */
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 0.9rem 2rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: var(--accent); }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    section { margin-bottom: 3.5rem; }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Equation box ── */
+    .eq-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 1rem 1.4rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.95rem;
+      color: #cdd9e5;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+
+    /* ── Functional legend ── */
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.9rem;
+    }
+    .swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    .legend-item span { font-size: 0.88rem; }
+
+    /* ── Element cards ── */
+    .element-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 1.25rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .atom-symbol {
+      width: 52px; height: 52px;
+      border-radius: 8px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .atom-symbol .sym  { font-size: 1.5rem; line-height: 1; }
+    .atom-symbol .num  { font-size: 0.7rem; color: rgba(255,255,255,0.6); }
+    .atom-symbol.H  { background: linear-gradient(135deg,#1565C0,#42A5F5); }
+    .atom-symbol.Si { background: linear-gradient(135deg,#37474F,#78909C); }
+    .atom-symbol.Xe { background: linear-gradient(135deg,#4A148C,#AB47BC); }
+    .card-header h3 { font-size: 1rem; font-weight: 600; }
+    .card-header p  { font-size: 0.8rem; color: var(--muted); }
+    .card-body { padding: 1rem 1.2rem; }
+    .card-body p { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.8rem; }
+    .file-links { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .file-link {
+      background: rgba(88,166,255,0.08);
+      border: 1px solid rgba(88,166,255,0.2);
+      border-radius: 4px;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.77rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-family: monospace;
+      transition: background 0.15s;
+    }
+    .file-link:hover { background: rgba(88,166,255,0.18); }
+    .file-link.green {
+      background: rgba(63,185,80,0.08);
+      border-color: rgba(63,185,80,0.2);
+      color: var(--accent2);
+    }
+    .file-link.green:hover { background: rgba(63,185,80,0.18); }
+
+    /* ── File tree ── */
+    .tree {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      line-height: 2;
+      overflow-x: auto;
+    }
+    .tree .dir  { color: var(--accent); font-weight: 600; }
+    .tree .file { color: var(--muted); }
+    .tree .note { color: #3fb950; font-size: 0.78rem; }
+
+    /* ── Code block ── */
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.1rem 1.3rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.83rem;
+      overflow-x: auto;
+      line-height: 1.7;
+      color: #cdd9e5;
+    }
+    pre .comment { color: #6e7681; }
+    pre .cmd     { color: var(--accent2); }
+
+    /* ── Table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    th {
+      background: var(--surface);
+      color: var(--muted);
+      text-align: left;
+      padding: 0.55rem 0.9rem;
+      border-bottom: 2px solid var(--border);
+      font-weight: 600;
+    }
+    td {
+      padding: 0.5rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    td code { font-family: monospace; color: var(--accent); font-size: 0.85em; }
+    tr:hover td { background: var(--surface); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 600px) {
+      .element-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="badge">Condensed Matter Physics · DFT</div>
+  <h1>Semilocal Exchange Potential<br><span style="color:var(--accent)">SCAN &amp; r²SCAN</span></h1>
+  <p class="subtitle">
+    Exchange potential <em>v<sub>x</sub><sup>sl</sup>(r)</em> from meta-GGA functionals
+    evaluated on Hartree–Fock atomic orbitals for H, Si, and Xe.
+  </p>
+  <div class="pill-row">
+    <div class="pill"><span>Functionals:</span> SCAN, r²SCAN, r²SCAN@LKT, r²SCAN@PGS</div>
+    <div class="pill"><span>Input:</span> Koga HF orbitals</div>
+    <div class="pill"><span>Language:</span> Python · NumPy</div>
+  </div>
+</header>
+
+<nav>
+  <a href="#overview">Overview</a>
+  <a href="#functionals">Functionals</a>
+  <a href="#elements">Elements</a>
+  <a href="#structure">Repository</a>
+  <a href="#usage">Usage</a>
+</nav>
+
+<main>
+
+  <!-- OVERVIEW -->
+  <section id="overview">
+    <h2>Overview</h2>
+    <p>
+      Meta-GGA functionals depend on the kinetic energy density τ in addition to the density
+      and its gradient. The <strong>semilocal exchange potential</strong> is the functional
+      derivative of the exchange energy with respect to the electron density, evaluated in the
+      semilocal approximation:
+    </p>
+    <div class="eq-box">
+      v<sub>x</sub><sup>sl</sup>(r) = ε<sub>x</sub><sup>LDA</sup> F<sub>x</sub>(s, ᾱ)
+        + n · ∂[ε<sub>x</sub><sup>LDA</sup> F<sub>x</sub>]/∂n
+        − ∇ · { n · ∂[ε<sub>x</sub><sup>LDA</sup> F<sub>x</sub>]/∂(∇n) }
+    </div>
+    <p>
+      Radial derivatives are computed using the <strong>Lagrange derivative method</strong>
+      (Seino &amp; Nakai) on the non-uniform Koga radial grid. The iso-orbital indicator
+      <strong>ᾱ</strong> — central to SCAN and r²SCAN — is regularized differently in each
+      functional variant studied here.
+    </p>
+  </section>
+
+  <!-- FUNCTIONALS -->
+  <section id="functionals">
+    <h2>Functionals &amp; Variants</h2>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="swatch" style="background:#9467bd"></div>
+        <span><strong>SCAN</strong> — original 2015 functional</span>
+      </div>
+      <div class="legend-item">
+        <div class="swatch" style="background:#1f77b4"></div>
+        <span><strong>r²SCAN</strong> — regularized-restored SCAN</span>
+      </div>
+      <div class="legend-item">
+        <div class="swatch" style="background:#d62728"></div>
+        <span><strong>r²SCAN@LKT</strong> — LKT τ denominator</span>
+      </div>
+      <div class="legend-item">
+        <div class="swatch" style="background:#2ca02c"></div>
+        <span><strong>r²SCAN@PGS</strong> — PGS τ denominator</span>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Variant</th>
+          <th>τ denominator (ᾱ definition)</th>
+          <th>Motivation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>SCAN</td>
+          <td><code>τ_TF + η·τ_W</code></td>
+          <td>Satisfies all 17 known exact constraints</td>
+        </tr>
+        <tr>
+          <td>r²SCAN</td>
+          <td><code>τ_TF·exp(−40p/27) + τ_W</code> (PGS)</td>
+          <td>Removes numerical difficulties of SCAN</td>
+        </tr>
+        <tr>
+          <td>r²SCAN@LKT</td>
+          <td><code>τ_TF·sech(1.3·s) + τ_W</code></td>
+          <td>LKT iso-orbital indicator regularization</td>
+        </tr>
+        <tr>
+          <td>r²SCAN@PGS</td>
+          <td><code>τ_TF·exp(−40p/27) + τ_W</code></td>
+          <td>PGS regularization of reduced gradient term</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ELEMENTS -->
+  <section id="elements">
+    <h2>Elements</h2>
+    <div class="element-grid">
+
+      <!-- Hydrogen -->
+      <div class="card">
+        <div class="card-header">
+          <div class="atom-symbol H"><div class="sym">H</div><div class="num">Z=1</div></div>
+          <div>
+            <h3>Hydrogen</h3>
+            <p>1s¹ — 1 electron</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>Simplest benchmark — single HF orbital. Exact semilocal limit is well defined.</p>
+          <div class="file-links">
+            <a class="file-link green" href="H/hf_orbitals.py">hf_orbitals.py</a>
+            <a class="file-link green" href="H/plot.py">plot.py</a>
+            <a class="file-link" href="H/R2SCAN/vx_r2scan.py">R2SCAN/vx_r2scan.py</a>
+            <a class="file-link" href="H/SCAN/vx_scan.py">SCAN/vx_scan.py</a>
+            <a class="file-link" href="assets/H_vx_r2scan_scan.pdf">figure (pdf)</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Silicon -->
+      <div class="card">
+        <div class="card-header">
+          <div class="atom-symbol Si"><div class="sym">Si</div><div class="num">Z=14</div></div>
+          <div>
+            <h3>Silicon</h3>
+            <p>[Ne] 3s² 3p² — 14 electrons</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>Many-electron atom with multiple shells; tests shell-structure sensitivity of ᾱ.</p>
+          <div class="file-links">
+            <a class="file-link green" href="Si/hf_orbitals.py">hf_orbitals.py</a>
+            <a class="file-link green" href="Si/plot.py">plot.py</a>
+            <a class="file-link" href="Si/R2SCAN/vx_r2scan.py">R2SCAN/vx_r2scan.py</a>
+            <a class="file-link" href="Si/SCAN/vx_scan.py">SCAN/vx_scan.py</a>
+            <a class="file-link" href="assets/Si_vx_r2scan_scan.pdf">figure (pdf)</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Xenon -->
+      <div class="card">
+        <div class="card-header">
+          <div class="atom-symbol Xe"><div class="sym">Xe</div><div class="num">Z=54</div></div>
+          <div>
+            <h3>Xenon</h3>
+            <p>[Kr] 4d¹⁰ 5s² 5p⁶ — 54 electrons</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>Heavy noble gas; reveals near-nuclear and near-core oscillations in the potential.</p>
+          <div class="file-links">
+            <a class="file-link green" href="Xe/hf_orbitals.py">hf_orbitals.py</a>
+            <a class="file-link green" href="Xe/plot.py">plot.py</a>
+            <a class="file-link" href="Xe/R2SCAN/vx_r2scan.py">R2SCAN/vx_r2scan.py</a>
+            <a class="file-link" href="Xe/SCAN/vx_scan.py">SCAN/vx_scan.py</a>
+            <a class="file-link" href="assets/Xe_vx_r2scan_scan.pdf">figure (pdf)</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- STRUCTURE -->
+  <section id="structure">
+    <h2>Repository Structure</h2>
+    <div class="tree">
+      <span class="dir">exchange-potential/</span><br>
+      ├── <span class="dir">H/</span><br>
+      │   ├── <span class="file">hf_orbitals.py</span>  <span class="note"># Build density, ∇n, τ from Koga data</span><br>
+      │   ├── <span class="file">plot.py</span>          <span class="note"># Comparison figure (all 4 functionals)</span><br>
+      │   ├── <span class="file">H_Koga_radial_data.dat</span><br>
+      │   ├── <span class="file">H_Koga_orbitals.dat</span><br>
+      │   ├── <span class="dir">R2SCAN/</span>  <span class="note"># r2scan.dat · r2scan_LKT.dat · r2scan_PGS.dat</span><br>
+      │   └── <span class="dir">SCAN/</span>    <span class="note"># scan.dat</span><br>
+      ├── <span class="dir">Si/</span>  <span class="note"># same layout as H/</span><br>
+      ├── <span class="dir">Xe/</span>  <span class="note"># same layout as H/</span><br>
+      └── <span class="dir">assets/</span>  <span class="note"># PDF figures for web display</span>
+    </div>
+    <p style="margin-top:0.8rem; color:var(--muted); font-size:0.88rem;">
+      All <code>.dat</code> files are plain-text, two-column (r in Bohr, v<sub>x</sub><sup>sl</sup> in Hartree).
+    </p>
+  </section>
+
+  <!-- USAGE -->
+  <section id="usage">
+    <h2>Reproducing the Results</h2>
+    <pre><span class="comment"># Clone the repository</span>
+<span class="cmd">git clone https://github.com/YOUR_USERNAME/exchange-potential.git</span>
+<span class="cmd">cd exchange-potential</span>
+
+<span class="comment"># Install dependencies</span>
+<span class="cmd">pip install numpy matplotlib</span>
+
+<span class="comment"># Example: Hydrogen</span>
+<span class="cmd">cd H/R2SCAN  &&  python vx_r2scan.py</span>   <span class="comment"># → r2scan.dat, r2scan_LKT.dat, r2scan_PGS.dat</span>
+<span class="cmd">cd ../SCAN   &&  python vx_scan.py</span>      <span class="comment"># → scan.dat</span>
+<span class="cmd">cd ..        &&  python plot.py</span>          <span class="comment"># → H_vx_r2scan_scan.pdf</span></pre>
+  </section>
+
+</main>
+
+<footer>
+  Semilocal Exchange Potential · SCAN &amp; r²SCAN · Hartree–Fock atomic benchmarks
+</footer>
+
+</body>
+</html>
